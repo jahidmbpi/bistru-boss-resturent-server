@@ -38,6 +38,25 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/menu", async (req, res) => {
+      const { category, currentPage, itemPerPage } = req.query;
+      console.log(category, currentPage, itemPerPage);
+      const totaldata = currentPage * itemPerPage;
+
+      const query = {
+        category: category,
+      };
+      const options = {
+        projection: { _id: 1, name: 1, image: 1, price: 1, recipe: 1 },
+      };
+      const result = await menuCollection
+        .find(query, options)
+        .skip(parseInt(totaldata))
+        .limit(parseInt(itemPerPage))
+        .toArray();
+      res.send(result);
+    });
+
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
