@@ -26,6 +26,7 @@ async function run() {
     //   database collection
     const menuCollection = client.db("bistroDB").collection("menuDb");
     const reviewCollection = client.db("bistroDB").collection("reviewDb");
+    const userCollection = client.db("user_Db").collection("userDb");
     // data api
     app.get("/almenu", async (req, res) => {
       const cursor = menuCollection.find();
@@ -54,6 +55,25 @@ async function run() {
         .skip(parseInt(totaldata))
         .limit(parseInt(itemPerPage))
         .toArray();
+      res.send(result);
+    });
+
+    // user related api
+    app.post("/addUser", async (req, res) => {
+      const user = req.body;
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.get("/allUser", async (req, res) => {
+      const cursor = userCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+    app.get("/user", async (req, res) => {
+      const email = req.body;
+      const query = { email: email };
+      const result = await userCollection.findOne(query);
       res.send(result);
     });
 
