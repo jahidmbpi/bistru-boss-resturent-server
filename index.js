@@ -26,7 +26,8 @@ async function run() {
     //   database collection
     const menuCollection = client.db("bistroDB").collection("menuDb");
     const reviewCollection = client.db("bistroDB").collection("reviewDb");
-    const userCollection = client.db("user_Db").collection("userDb");
+    const userCollection = client.db("bistroDB").collection("userDb");
+    const cardCollection = client.db("bistroDB").collection("cardDb");
     // data api
     app.get("/almenu", async (req, res) => {
       const cursor = menuCollection.find();
@@ -41,7 +42,7 @@ async function run() {
 
     app.get("/menu", async (req, res) => {
       const { category, currentPage, itemPerPage } = req.query;
-      console.log(category, currentPage, itemPerPage);
+      // console.log(category, currentPage, itemPerPage);
       const totaldata = currentPage * itemPerPage;
 
       const query = {
@@ -71,9 +72,22 @@ async function run() {
       res.send(result);
     });
     app.get("/user", async (req, res) => {
-      const email = req.body;
+      const email = req.query.email;
+
       const query = { email: email };
       const result = await userCollection.findOne(query);
+      res.send(result);
+    });
+    // card related api
+    app.post("/addCard", async (req, res) => {
+      const card = req.body;
+      console.log(card);
+      const result = await cardCollection.insertOne(card);
+      res.send(result);
+    });
+
+    app.get("/cards", async (req, res) => {
+      const result = await cardCollection.find().toArray();
       res.send(result);
     });
 
