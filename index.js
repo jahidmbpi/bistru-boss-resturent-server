@@ -63,22 +63,68 @@ async function run() {
     // user related api
     app.post("/addUser", async (req, res) => {
       const user = req.body;
-      const result = await userCollection.insertOne(user);
-      res.send(result);
-    });
 
+      if (!user.role) {
+        user.role = "user";
+      }
+
+      try {
+        const result = await userCollection.insertOne(user);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to add user", error });
+      }
+    });
+    // get all user
     app.get("/allUser", async (req, res) => {
       const cursor = userCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
-    app.get("/user", async (req, res) => {
-      const email = req.query.email;
-
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
       const query = { email: email };
       const result = await userCollection.findOne(query);
       res.send(result);
     });
+    // update user as admin
+    app.patch("/user/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = { $set: { role: "admin" } };
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+    // upadet user as genarel user
+    app.patch("/user/genareluser/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = { $set: { role: "user" } };
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+    // delete user from database
+    app.delete("/user/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ error: "Invalid user ID" });
+        }
+
+        const filter = { _id: new ObjectId(id) };
+        const result = await userCollection.deleteOne(filter);
+
+        if (result.deletedCount === 0) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
+        res.send({ message: "User deleted successfully", result });
+      } catch (error) {
+        res.status(500).send({ error: "Internal server error" });
+      }
+    });
+
     // card related api
     app.post("/addCard", async (req, res) => {
       const card = req.body;
