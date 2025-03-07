@@ -30,17 +30,25 @@ async function run() {
     const userCollection = client.db("bistroDB").collection("userDb");
     const cardCollection = client.db("bistroDB").collection("cardDb");
     // data api
-    app.get("/almenu", async (req, res) => {
-      const cursor = menuCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
+    // review related api
     app.get("/review", async (req, res) => {
       const cursor = reviewCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
-
+    // menu related api
+    app.post("/menu", async (req, res) => {
+      const menuData = req.body;
+      console.log(menuData);
+      const result = await menuCollection.insertOne(menuData);
+      res.send(result);
+    });
+    app.get("/almenu", async (req, res) => {
+      const cursor = menuCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+    // get menu for paigination
     app.get("/menu", async (req, res) => {
       const { category, currentPage, itemPerPage } = req.query;
       // console.log(category, currentPage, itemPerPage);
