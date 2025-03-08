@@ -1,15 +1,15 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const port = process.env.PORt || 5000;
+const port = process.env.PORt || 3000;
 require("dotenv").config();
 // midlewaire
 app.use(cors());
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const req = require("express/lib/request");
-const uri = `mongodb+srv://${process.env.BISTRO_BOSS}:${process.env.BISTRO_PASSWORD}@cluster0.g8zp6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+// const req = require("express/lib/request");
+const uri = `mongodb+srv://jahid:gBo9CYknnlBlVekt@cluster0.g8zp6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -67,7 +67,17 @@ async function run() {
         .toArray();
       res.send(result);
     });
+    app.delete("/deletemenu/:id", async (req, res) => {
+      const id = req.params.id;
 
+      const foundItem = await menuCollection.findOne({ _id: id });
+      console.log("Found Item:", foundItem);
+
+      const query = { _id: id };
+
+      const result = await menuCollection.deleteOne(query);
+      res.send(result);
+    });
     // user related api
     app.post("/addUser", async (req, res) => {
       const user = req.body;
