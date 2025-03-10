@@ -1,8 +1,10 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const port = process.env.PORt || 3000;
+const port = process.env.PORt || 5000;
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 // midlewaire
 app.use(cors());
 app.use(express.json());
@@ -77,6 +79,28 @@ async function run() {
 
       const result = await menuCollection.deleteOne(query);
       res.send(result);
+    });
+
+    app.patch("/update/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updateMenu = req.body;
+        const filter = { _id: id };
+        const updateFields = {};
+        if (updateMenu.name !== undefined) updateFields.name = updateMenu.name;
+        if (updateMenu.recipe !== undefined)
+          updateFields.recipe = updateMenu.recipe;
+        if (updateMenu.category !== undefined)
+          updateFields.category = updateMenu.category;
+        if (updateMenu.price !== undefined)
+          updateFields.price = updateMenu.price;
+        const updateDoc = { $set: updateFields };
+        const result = await menuCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      } catch {
+        console.log(error);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
     });
     // user related api
     app.post("/addUser", async (req, res) => {
@@ -162,6 +186,36 @@ async function run() {
       const result = await cardCollection.deleteOne(query);
       res.send(result);
     });
+    // payment api
+    // payment intent api
+    app.post("/create-payment-intent", async (req, res) => {
+      try {
+        const { price } = req.body;
+        console.log("Received price:", price);
+
+        if (!price || isNaN(price)) {
+          return res.status(400).send({ error: "Invalid price value" });
+        }
+
+        const amount = Math.round(parseFloat(price) * 100);
+        console.log("Amount in cents:", amount);
+
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount,
+          currency: "usd",
+          automatic_payment_methods: { enabled: true },
+        });
+
+        res.send({ clientSecret: paymentIntent.client_secret });
+      } catch (error) {
+        console.error("Payment Intent Error:", error);
+        res.status(500).send({ error: error.message });
+      }
+    });
+
+    // app.post("/create-checkout-session", async (req, res) => {
+    //   const session = await stripe.checkout.sessions.create({});
+    // });
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
