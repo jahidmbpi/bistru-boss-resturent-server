@@ -31,6 +31,7 @@ async function run() {
     const reviewCollection = client.db("bistroDB").collection("reviewDb");
     const userCollection = client.db("bistroDB").collection("userDb");
     const cardCollection = client.db("bistroDB").collection("cardDb");
+    const paymentsCollection = client.db("bistroDB").collection("payments");
     // data api
     // review related api
     app.get("/review", async (req, res) => {
@@ -101,6 +102,22 @@ async function run() {
         console.log(error);
         res.status(500).send({ message: "Internal Server Error" });
       }
+    });
+
+    // payment related api
+    app.post("/payments", async (req, res) => {
+      const paymentInfo = req.body;
+      console.log("payment data", paymentInfo);
+      const PayResult = await paymentsCollection.insertOne(paymentInfo);
+      console.log(PayResult);
+      const query = {
+        _id: {
+          $in: paymentInfo?.cardId?.map((id) => new ObjectId(id.toString())),
+        },
+      };
+      const result = await cardCollection.deleteMany(query);
+      console.log(result);
+      res.send(result);
     });
     // user related api
     app.post("/addUser", async (req, res) => {
@@ -190,14 +207,14 @@ async function run() {
     // payment intent api
     app.post("/create-payment-intent", async (req, res) => {
       try {
-        const { price } = req.body;
-        console.log("Received price:", price);
+        const { totalPrice } = req.body;
+        console.log("Received price:", totalPrice);
 
-        if (!price || isNaN(price)) {
+        if (!totalPrice || isNaN(totalPrice)) {
           return res.status(400).send({ error: "Invalid price value" });
         }
 
-        const amount = Math.round(parseFloat(price) * 100);
+        const amount = Math.round(parseFloat(totalPrice) * 100);
         console.log("Amount in cents:", amount);
 
         const paymentIntent = await stripe.paymentIntents.create({
@@ -212,10 +229,6 @@ async function run() {
         res.status(500).send({ error: error.message });
       }
     });
-
-    // app.post("/create-checkout-session", async (req, res) => {
-    //   const session = await stripe.checkout.sessions.create({});
-    // });
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
