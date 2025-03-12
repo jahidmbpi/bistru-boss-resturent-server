@@ -119,6 +119,13 @@ async function run() {
       console.log(result);
       res.send(result);
     });
+
+    app.get("/payment", async (req, res) => {
+      const email = req.query.email;
+      const filter = { email: email };
+      const result = await paymentsCollection.find(filter).toArray();
+      res.send(result);
+    });
     // user related api
     app.post("/addUser", async (req, res) => {
       const user = req.body;
@@ -154,6 +161,81 @@ async function run() {
       const result = await userCollection.updateOne(query, updateDoc);
       res.send(result);
     });
+    app.get("/admin", async (req, res) => {
+      try {
+        const userEmail = req.query.email;
+        console.log("User email:", userEmail);
+
+        if (!userEmail) {
+          return res.status(400).json({ message: "User email is required" });
+        }
+
+        const query = { email: userEmail };
+        const user = await userCollection.findOne(query);
+        console.log("User found:", user);
+
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        if (user.role === "admin") {
+          return res.send((isAdmin = true));
+        }
+        return res.send((isAdmin = false));
+      } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+    app.get("/admin-stats", async (req, res) => {
+      const user = await userCollection.estimatedDocumentCount();
+      const totalMenu = await menuCollection.estimatedDocumentCount();
+      const order = await paymentsCollection.estimatedDocumentCount();
+      const result = await paymentsCollection
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              totaalRevenieu: { $sum: "$price" },
+            },
+          },
+        ])
+        .toArray();
+
+      const revenue = result.length > 0 ? result[0].totaalRevenieu : 0;
+      res.send({ user, totalMenu, order, revenue });
+    });
+
+    app.get("/order-stats", async (req, res) => {
+      const result = await paymentsCollection
+        .aggregate([
+          {
+            $unwind: "$menuId",
+          },
+          {
+            $lookup: {
+              from: "menuDb",
+              localField: "menuId",
+              foreignField: "_id",
+              as: "menuItems",
+            },
+          },
+          {
+            $unwind: "$menuItems",
+          },
+          {
+            $group: {
+              _id: "$menuItems.category",
+              quantity: { $sum: 1 },
+              revenue: { $sum: "$menuItems.price" },
+            },
+          },
+        ])
+        .toArray();
+      res.send(result);
+    });
+
     // upadet user as genarel user
     app.patch("/user/genareluser/:id", async (req, res) => {
       const id = req.params.id;
